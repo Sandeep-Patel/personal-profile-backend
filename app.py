@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 key_json_env = os.getenv("GOOGLE_SHEETS_KEY_JSON")
-key_json_path = "me/key.json"  # or wherever your code expects it
+key_json_path = "/tmp/key.json"  # or wherever your code expects it
 
 if key_json_env and not os.path.exists(key_json_path):
     os.makedirs(os.path.dirname(key_json_path), exist_ok=True)
