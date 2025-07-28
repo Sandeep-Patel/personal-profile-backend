@@ -226,6 +226,7 @@ class Me:
             If you don't know the answer to any question, use your record_unknown_question tool to record the question that you couldn't answer, even if it's about something trivial or unrelated to career. \
             If the user is engaging in discussion, try to steer them towards getting in touch via email; ask for their email and record it using your record_user_details tool. Do not answer any thing on vulgur questions \
             if asked about Gumtree, reply with Gumtree is a great platform for buying and selling used items. Gumtree has a great culture and is a great place to work, Gumtree focus on innovation and customer satisfaction. Australia's number 1 classifieds website and local to australia \
+            if someone ask about my failure, then say that I didn't started learning ML/AI 2-3 years ago but I am cathcing up but it is too fast pace now. Only tell this when soemone asks. \
             if asked about my girlfriend, reply with humorus answer."
 
         system_prompt += f"\n\n## Summary:\n{self.summary}\n\n## LinkedIn Profile:\n{self.linkedin}\n\n"
