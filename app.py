@@ -1,14 +1,20 @@
 from openai import OpenAI
 import json
 import os
+import datetime
 import requests
+from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 from pypdf import PdfReader
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import os
+from dotenv import load_dotenv
 
 
+load_dotenv()
 
 app = FastAPI()
 
@@ -25,8 +31,6 @@ def home():
 class ChatRequest(BaseModel):
     message: str
     history: List[Dict[str, Any]]
-
-
 
 def push(text):
     print("Attempting to send push notification...")
@@ -55,14 +59,64 @@ def push(text):
         print(f"Error sending push notification: {e}")
 
 
+def writetogooglesheet(text, gemini_response):
+    """
+    Writes a message to Google Sheets.
+    
+    TODO: Before using this function:
+    1. Create a Google Cloud Project at https://console.cloud.google.com/
+    2. Enable Google Sheets API in the project
+    3. Create a service account and download credentials JSON
+    4. Create a Google Sheet and share it with the service account email
+    5. Set up environment variables:
+       - GOOGLE_SHEETS_CREDENTIALS: Path to service account JSON file
+       - GOOGLE_SHEET_ID: ID of the Google Sheet (from sheet URL)
+    """
+    try:
+        credentials_path = os.getenv('GOOGLE_SHEETS_CREDENTIALS')
+        sheet_id = os.getenv('GOOGLE_SHEET_ID')
+        
+        if not credentials_path or not sheet_id:
+            print("Google Sheets credentials or Sheet ID not configured")
+            return
+             
+        credentials = service_account.Credentials.from_service_account_file(
+            credentials_path,
+            scopes=['https://www.googleapis.com/auth/spreadsheets']
+        )
+        
+        service = build('sheets', 'v4', credentials=credentials)
+        
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        values = [[timestamp, text, gemini_response]]
+        
+        result = service.spreadsheets().values().append(
+            spreadsheetId=sheet_id,
+            range='Sheet1!A:B',  # Assumes sheet is named 'Sheet1' with columns for timestamp and message
+            valueInputOption='RAW',
+            insertDataOption='INSERT_ROWS',
+            body={'values': values}
+        ).execute()
+        
+        print(f"Message written to Google Sheets: {text}")
+        return result
+        
+    except Exception as e:
+        print(f"Error writing to Google Sheets: {e}")
+
+
 def record_user_details(email, name="Name not provided", notes="not provided"):
     print("after record_user_details")
-    push(f"Recording {name} with email {email} and notes {notes}")
+    message = f"Recording {name} with email {email} and notes {notes}"
+    push(message)
+    
     return {"recorded": "ok"}
 
 def record_unknown_question(question):
     print("after record_unknown_question")
-    push(f"Recording {question}")
+    message = f"Recording {question}"
+    push(message)
+    
     return {"recorded": "ok"}
 
 record_user_details_json = {
@@ -176,6 +230,7 @@ class Me:
         print("Processing chat request...")
         push(message)
         
+        
         try:
             messages = [{"role": "system", "content": self.system_prompt()}] + history + [{"role": "user", "content": message}]
             done = False
@@ -207,8 +262,10 @@ class Me:
                     messages.extend(results)
                 else:
                     done = True
-                    
-            return response.choices[0].message.content
+            
+            ret = response.choices[0].message.content
+            writetogooglesheet(message, ret)        
+            return ret
             
         except Exception as e:
             print(f"Error in chat method: {e}")
