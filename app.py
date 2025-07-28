@@ -15,6 +15,13 @@ from dotenv import load_dotenv
 
 
 load_dotenv()
+key_json_env = os.getenv("GOOGLE_SHEETS_KEY_JSON")
+key_json_path = "me/key.json"  # or wherever your code expects it
+
+if key_json_env and not os.path.exists(key_json_path):
+    os.makedirs(os.path.dirname(key_json_path), exist_ok=True)
+    with open(key_json_path, "w") as f:
+        f.write(key_json_env)
 
 app = FastAPI()
 
